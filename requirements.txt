@@ -1,0 +1,4 @@
+# This project uses only the Python standard library — no third-party runtime dependencies.
+# This file exists so dependency scanners and tooling correctly identify the project as
+# Python with zero runtime requirements.
+# Requires Python >= 3.12 (for zoneinfo, added in 3.9, and modern stdlib features).

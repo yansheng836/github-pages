@@ -75,6 +75,7 @@ OWNER=yansheng836 python generate_nav.py
 github-pages/
 ├── generate_nav.py          # 扫描并生成导航的脚本（仅标准库）
 ├── index.html               # 脚本生成的导航页（自动提交）
+├── requirements.txt         # 空 —— 仅标准库，供依赖扫描器识别
 ├── docs/
 │   └── screenshot.png       # 预览截图
 ├── .github/

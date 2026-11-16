@@ -79,6 +79,7 @@ The generated file is written next to the script as `index.html`.
 github-pages/
 ├── generate_nav.py          # Scan + render script (stdlib only)
 ├── index.html               # Generated nav page (auto-committed)
+├── requirements.txt         # Empty — stdlib only, for scanner compatibility
 ├── docs/
 │   └── screenshot.png       # Preview screenshot
 ├── .github/
