@@ -4,12 +4,12 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-![GitHub Pages navigation](docs/screenshot.png)
-
 [![CI](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml/badge.svg)](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Made with Python](https://img.shields.io/badge/Made%20with-Python-3.12-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![GitHub stars](https://img.shields.io/github/stars/yansheng836/github-pages?style=social)](https://github.com/yansheng836/github-pages/stargazers)
+
+![GitHub Pages navigation](docs/screenshot.png)
 
 A single Python script (standard library only) scans every public repo under your
 GitHub account, keeps the ones that have GitHub Pages enabled, and renders a dark,

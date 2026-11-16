@@ -4,12 +4,12 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-![GitHub Pages 导航](docs/screenshot.png)
-
 [![CI](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml/badge.svg)](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Made with Python](https://img.shields.io/badge/Made%20with-Python-3.12-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![GitHub stars](https://img.shields.io/github/stars/yansheng836/github-pages?style=social)](https://github.com/yansheng836/github-pages/stargazers)
+
+![GitHub Pages 导航](docs/screenshot.png)
 
 一个纯 Python 标准库脚本，扫描你 GitHub 账号下的所有公开仓库，筛出启用了
 GitHub Pages 的，渲染成深色响应式卡片网格导航页。GitHub Action 每天定时重新生成并
