@@ -56,7 +56,7 @@ def card_html(e):
     </div>"""
 
 
-def render(owner, entries):
+def render(owner, entries, avatar_url=None):
     cards = "\n".join(card_html(e) for e in entries)
     body = (
         f'<div class="grid">\n{cards}\n  </div>'
@@ -64,11 +64,17 @@ def render(owner, entries):
         else '<div class="empty">暂未发现启用了 Pages 的公开仓库</div>'
     )
     updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    favicon = (
+        f'<link rel="icon" href="{esc(avatar_url)}">\n'
+        f'<link rel="apple-touch-icon" href="{esc(avatar_url)}">'
+        if avatar_url else ""
+    )
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+{favicon}
 <title>{esc(owner)} 的 GitHub Pages 导航</title>
 <style>
 :root {{ --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --muted:#8b949e; --accent:#58a6ff; }}
@@ -115,6 +121,12 @@ def main():
 
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_PAT")
 
+    avatar_url = None
+    code, data = api_get(f"/users/{owner}", token)
+    if code == 200 and data:
+        avatar_url = data.get("avatar_url")
+        print(f"头像: {avatar_url}")
+
     print(f"扫描 {owner} 的公开仓库...")
     repos = list_public_repos(owner, token)
     print(f"共 {len(repos)} 个公开仓库，检查 Pages...")
@@ -138,7 +150,7 @@ def main():
     entries.sort(key=lambda e: e["updated"], reverse=True)
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
     with open(out, "w", encoding="utf-8") as f:
-        f.write(render(owner, entries))
+        f.write(render(owner, entries, avatar_url))
     print(f"生成 {len(entries)} 个条目 -> {out}")
 
 
