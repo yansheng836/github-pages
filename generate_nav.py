@@ -4,11 +4,27 @@ import html as html_mod
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import urllib.error
 import urllib.request
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 API = "https://api.github.com"
+DEFAULT_TZ = "Asia/Shanghai"
+
+
+def now_in_tz(tz_name):
+    if ZoneInfo:
+        try:
+            return datetime.now(ZoneInfo(tz_name))
+        except Exception:
+            pass
+    offset = 8 if "Shanghai" in tz_name or "Beijing" in tz_name or "+8" in tz_name else 0
+    return datetime.now(timezone(timedelta(hours=offset)))
 
 
 def api_get(path, token=None):
@@ -63,7 +79,8 @@ def render(owner, entries, avatar_url=None):
         if entries
         else '<div class="empty">暂未发现启用了 Pages 的公开仓库</div>'
     )
-    updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    tz_name = os.environ.get("TIMEZONE", DEFAULT_TZ)
+    updated_at = now_in_tz(tz_name).strftime("%Y-%m-%d %H:%M") + f" ({tz_name})"
     favicon = (
         f'<link rel="icon" href="{esc(avatar_url)}">\n'
         f'<link rel="apple-touch-icon" href="{esc(avatar_url)}">'
