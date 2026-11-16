@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
       - name: 生成导航
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
