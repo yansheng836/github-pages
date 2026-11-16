@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""扫描账号下所有启用了 GitHub Pages 的公开仓库，生成导航 index.html。"""
+import html as html_mod
+import json
+import os
+import sys
+from datetime import datetime, timezone
+import urllib.error
+import urllib.request
+
+API = "https://api.github.com"
+
+
+def api_get(path, token=None):
+    req = urllib.request.Request(
+        f"{API}{path}",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "github-pages-nav"},
+    )
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status, json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        return e.code, None
+
+
+def list_public_repos(owner, token):
+    repos = []
+    page = 1
+    while True:
+        code, data = api_get(
+            f"/users/{owner}/repos?type=owner&sort=pushed&direction=desc&per_page=100&page={page}",
+            token,
+        )
+        if code != 200 or not data:
+            break
+        repos.extend(data)
+        if len(data) < 100:
+            break
+        page += 1
+    return repos
+
+
+def esc(s):
+    return html_mod.escape(s or "", quote=True)
+
+
+def card_html(e):
+    desc = e["description"] or "（无描述）"
+    return f"""    <div class="card">
+      <a class="name" href="{esc(e['pages_url'])}" target="_blank" rel="noopener">{esc(e['name'])}</a>
+      <div class="desc">{esc(desc)}</div>
+      <div class="pages">仓库：<a href="{esc(e['repo_url'])}" target="_blank" rel="noopener">{esc(e['repo_url'])}</a></div>
+      <div class="updated">更新：{esc(e['updated']) or '未知'}</div>
+    </div>"""
+
+
+def render(owner, entries):
+    cards = "\n".join(card_html(e) for e in entries)
+    body = (
+        f'<div class="grid">\n{cards}\n  </div>'
+        if entries
+        else '<div class="empty">暂未发现启用了 Pages 的公开仓库</div>'
+    )
+    updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{esc(owner)} 的 GitHub Pages 导航</title>
+<style>
+:root {{ --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --muted:#8b949e; --accent:#58a6ff; }}
+* {{ box-sizing:border-box; }}
+body {{ margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; }}
+header {{ padding:2rem 1rem 1rem; max-width:1100px; margin:0 auto; }}
+h1 {{ font-size:1.5rem; margin:0 0 .25rem; }}
+.meta {{ color:var(--muted); font-size:.9rem; }}
+main {{ max-width:1100px; margin:0 auto; padding:1rem; }}
+.grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }}
+.card {{ background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1rem; display:flex; flex-direction:column; transition:transform .15s, border-color .15s; }}
+.card:hover {{ transform:translateY(-2px); border-color:var(--accent); }}
+.name {{ font-weight:600; color:var(--accent); text-decoration:none; font-size:1.05rem; word-break:break-all; }}
+.desc {{ color:var(--muted); font-size:.875rem; margin:.5rem 0; flex:1; line-height:1.5; }}
+.pages {{ font-size:.8rem; color:var(--text); word-break:break-all; }}
+.pages a {{ color:var(--accent); text-decoration:none; }}
+.updated {{ color:var(--muted); font-size:.75rem; margin-top:.5rem; }}
+.empty {{ color:var(--muted); text-align:center; padding:3rem; }}
+footer {{ max-width:1100px; margin:0 auto; padding:1rem; color:var(--muted); font-size:.8rem; }}
+</style>
+</head>
+<body>
+<header>
+  <h1>{esc(owner)} 的 GitHub Pages 导航</h1>
+  <div class="meta">共 {len(entries)} 个站点 · 自动更新于 {updated_at}</div>
+</header>
+<main>
+{body}
+</main>
+<footer>由 GitHub Action 自动生成 · 每日扫描更新</footer>
+</body>
+</html>
+"""
+
+
+def main():
+    owner = os.environ.get("OWNER") or os.environ.get("GITHUB_REPOSITORY_OWNER")
+    if not owner:
+        repo_env = os.environ.get("GITHUB_REPOSITORY", "")
+        owner = repo_env.split("/")[0] if "/" in repo_env else ""
+    if not owner:
+        print("无法确定 owner（设置 OWNER 或 GITHUB_REPOSITORY 环境变量）", file=sys.stderr)
+        sys.exit(1)
+
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_PAT")
+
+    print(f"扫描 {owner} 的公开仓库...")
+    repos = list_public_repos(owner, token)
+    print(f"共 {len(repos)} 个公开仓库，检查 Pages...")
+
+    entries = []
+    for r in repos:
+        full = r["full_name"]
+        code, data = api_get(f"/repos/{full}/pages", token)
+        if code == 200 and data:
+            entries.append({
+                "name": r["name"],
+                "description": r.get("description") or "",
+                "repo_url": r["html_url"],
+                "pages_url": data.get("html_url") or f"https://{owner}.github.io/{r['name']}/",
+                "updated": (r.get("pushed_at") or "")[:10],
+            })
+            print(f"  ✓ {full}")
+        else:
+            print(f"  - {full} (无 Pages)")
+
+    entries.sort(key=lambda e: e["updated"], reverse=True)
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(render(owner, entries))
+    print(f"生成 {len(entries)} 个条目 -> {out}")
+
+
+if __name__ == "__main__":
+    main()
