@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an idea for this project
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What's currently hard or impossible to do?
+      placeholder: "I want to filter repos by topic, but..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like the script/page to do instead?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or other approaches you've thought about.

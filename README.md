@@ -1,67 +1,100 @@
 # github-pages
 
-自动收集账号下所有启用了 GitHub Pages 的公开仓库，生成一个导航页面。
+> Auto-generated navigation page listing all your GitHub Pages sites in a clean card grid.
 
-## 站点
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-- 导航页：<https://yansheng836.github.io/github-pages/>
-- 仓库：<https://github.com/yansheng836/github-pages>
+![GitHub Pages navigation](docs/screenshot.png)
 
-## 工作原理
+[![CI](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml/badge.svg)](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Made with Python](https://img.shields.io/badge/Made%20with-Python-3.12-blue.svg)](https://www.python.org/)
+[![GitHub stars](https://img.shields.io/github/stars/yansheng836/github-pages?style=social)](https://github.com/yansheng836/github-pages/stargazers)
 
-1. `generate_nav.py` 通过 GitHub API 列出账号下的公开仓库
-2. 逐个检查 `/repos/{owner}/{repo}/pages`，筛出启用了 Pages 的
-3. 收集仓库名、描述、仓库链接、Pages 站点链接、最近更新时间
-4. 生成卡片网格状的 `index.html`，按最近更新时间排序
+A single Python script (standard library only) scans every public repo under your
+GitHub account, keeps the ones that have GitHub Pages enabled, and renders a dark,
+responsive card-grid navigation page. A scheduled GitHub Action regenerates it daily
+and pushes the result to your Pages site — no server, no database, no dependencies.
 
-GitHub Action 每天定时跑一次，自动提交并推送新的 `index.html`，
-Pages 随之更新。
+**Live demo:** <https://yansheng836.github.io/github-pages/>
 
-## 维护仓库信息
+## Features
 
-导航页显示的「描述」直接取自 GitHub 仓库的 description 字段。
-要修改某个仓库在导航页上的描述，去该仓库的 **Settings → About**
-改描述即可，下次 Action 运行后自动同步。
+- **Zero dependencies** — pure Python 3.12 standard library.
+- **Fully automatic** — a daily GitHub Action scans, rebuilds, and publishes.
+- **One file output** — a self-contained `index.html` hosted on GitHub Pages.
+- **Per-account avatar favicon** — your GitHub avatar is injected as the site favicon.
+- **Configurable timezone** — timestamps render in your local timezone (defaults to Beijing).
+- **Sorted by recent activity** — the most recently pushed repos float to the top.
 
-## 手动触发更新
+## Quick start (use it for your own account)
 
-在仓库的 **Actions** 页选择「更新 Pages 导航」工作流，点击 **Run workflow** 即可立即重新生成。
+1. **Fork** this repository.
+2. Enable **Settings → Pages → Deploy from a branch** (`main` / root), so the generated
+   `index.html` gets served.
+3. Enable **Settings → Actions → Allow all actions**, then the daily `update-nav.yml`
+   workflow runs automatically. The `GITHUB_TOKEN` provided by the runner is enough —
+   no extra secrets required.
 
-## 项目结构
+That's it. The next scheduled run (or a manual **Run workflow** click) scans your
+account and publishes your own navigation page at `https://<you>.github.io/github-pages/`.
 
-```text
-github-pages/
-├── generate_nav.py                # 扫描并生成导航的脚本
-├── index.html                     # 脚本生成的导航页（自动提交）
-├── .github/
-│   ├── workflows/
-│   │   └── update-nav.yml         # 定时更新工作流
-│   └── dependabot.yml             # 自动升级 action 版本
-└── LICENSE
-```
+> The script determines the owner from `GITHUB_REPOSITORY_OWNER` (set automatically on
+> GitHub Actions). To override, set the `OWNER` environment variable.
 
-## 本地运行
+## How it works
+
+1. `generate_nav.py` lists every public repo under the owner via the GitHub REST API.
+2. It queries `/repos/{owner}/{repo}/pages` for each, keeping only the ones with Pages enabled.
+3. It collects the repo name, description, repo link, Pages URL, and last push time.
+4. It renders a card-grid `index.html` sorted by most recent activity.
+
+The GitHub Action runs this daily, commits the new `index.html`, and pushes it; Pages
+serves the updated page shortly after.
+
+## Local run
 
 ```bash
-# 设置环境变量（可选，提供后可提高 API 速率限制）
+# Optional: provide a token to raise the API rate limit
 export GITHUB_TOKEN=$(gh auth token)
 
-# 运行脚本，生成 index.html
-python generate_nav.py
-```
-
-脚本会读取 `GITHUB_REPOSITORY_OWNER` 或 `OWNER` 环境变量确定扫描的账号；本地运行时可手动指定：
-
-```bash
+# Generate index.html for any account
 OWNER=yansheng836 python generate_nav.py
 ```
 
-## 技术栈
+The generated file is written next to the script as `index.html`.
 
-- Python 3.12（仅标准库，无第三方依赖）
-- GitHub Actions（定时 + 手动触发）
-- GitHub Pages（静态托管）
+### Environment variables
 
-## 许可证
+| Variable                  | Required | Description                                                         |
+| ------------------------- | -------- | ------------------------------------------------------------------- |
+| `OWNER`                   | no       | GitHub account to scan. Falls back to `GITHUB_REPOSITORY_OWNER`.    |
+| `GITHUB_TOKEN` / `GH_PAT` | no       | Token for higher API rate limits. Auto-set on GitHub Actions.        |
+| `TIMEZONE`                | no       | IANA timezone for the "updated at" stamp. Defaults to `Asia/Shanghai`. |
+| `LANG`                    | no       | UI language of the generated page. `en` for English, otherwise Chinese. |
 
-[MIT](LICENSE)
+## Project structure
+
+```text
+github-pages/
+├── generate_nav.py          # Scan + render script (stdlib only)
+├── index.html               # Generated nav page (auto-committed)
+├── docs/
+│   └── screenshot.png       # Preview screenshot
+├── .github/
+│   ├── workflows/
+│   │   └── update-nav.yml   # Daily update workflow
+│   └── dependabot.yml       # Keep action versions current
+├── README.md                # English docs (this file)
+├── README.zh-CN.md          # Chinese docs
+└── LICENSE
+```
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, and
+please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
+
+## License
+
+[MIT](LICENSE) © yansheng836

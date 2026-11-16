@@ -1,0 +1,40 @@
+name: Bug report
+description: Report something that's broken or behaving unexpectedly
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the problem. Include screenshots if helpful.
+      placeholder: "I ran `OWNER=xxx python generate_nav.py` and ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: GitHub account scanned
+      description: The OWNER you passed to the script (if relevant).
+      placeholder: "yansheng836"
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Python version, how you ran the script.
+      placeholder: "Windows 10, Python 3.12.1, ran locally with GITHUB_TOKEN set"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Paste script stdout/stderr or Action logs. No secrets.
+      render: shell
