@@ -1,6 +1,8 @@
 name: 更新 Pages 导航
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '0 0 * * *'  # 每天 UTC 00:00 运行
   workflow_dispatch:

@@ -32,15 +32,19 @@ and pushes the result to your Pages site — no server, no database, no dependen
 1. **Fork** this repository.
 2. Enable **Settings → Pages → Deploy from a branch** (`main` / root), so the generated
    `index.html` gets served.
-3. Enable **Settings → Actions → Allow all actions**, then the daily `update-nav.yml`
-   workflow runs automatically. The `GITHUB_TOKEN` provided by the runner is enough —
-   no extra secrets required.
+3. In **Settings → Actions → Allow all actions and workflows**, enable Actions.
+   On forks, **scheduled workflows are disabled by default** — go to the **Actions** tab,
+   click **"I understand my workflows, go ahead and enable them"**, then select the
+   "更新 Pages 导航" workflow and click **Run workflow** once to generate your page.
 
-That's it. The next scheduled run (or a manual **Run workflow** click) scans your
-account and publishes your own navigation page at `https://<you>.github.io/github-pages/`.
+The workflow then runs daily (UTC 00:00) and on every push to `main`, regenerating
+`index.html` with **your** account's repos. The `GITHUB_TOKEN` provided by the runner
+is enough — no extra secrets required. Your page lives at
+`https://<you>.github.io/github-pages/`.
 
 > The script determines the owner from `GITHUB_REPOSITORY_OWNER` (set automatically on
-> GitHub Actions). To override, set the `OWNER` environment variable.
+> GitHub Actions to whoever owns the running repo). To override, set the `OWNER`
+> environment variable. No account name is hardcoded anywhere in the script.
 
 ## How it works
 

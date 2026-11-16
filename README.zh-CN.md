@@ -30,14 +30,16 @@ GitHub Pages 的，渲染成深色响应式卡片网格导航页。GitHub Action
 
 1. **Fork** 本仓库。
 2. 在 **Settings → Pages** 选择从 `main` 分支根目录部署，生成的 `index.html` 即可被访问。
-3. 在 **Settings → Actions** 允许所有 Action，随后 `update-nav.yml` 每日自动运行。
-   运行器自带的 `GITHUB_TOKEN` 已足够，无需额外密钥。
+3. 在 **Settings → Actions** 允许所有 Action 与工作流。**fork 仓库的定时任务默认是关闭的**，
+   需到 **Actions** 页点击 **"I understand my workflows, go ahead and enable them"** 启用，
+   再选中「更新 Pages 导航」工作流手动 **Run workflow** 一次以生成你的页面。
 
-完成后，下一次定时运行（或手动点击 **Run workflow**）即会扫描你的账号并发布
-你自己的导航页：`https://<你的用户名>.github.io/github-pages/`。
+之后工作流每日（UTC 00:00）以及每次推送到 `main` 时都会重新生成 `index.html`，
+扫描的是**你的**账号下的仓库。运行器自带的 `GITHUB_TOKEN` 已足够，无需额外密钥。
+你的导航页地址：`https://<你的用户名>.github.io/github-pages/`。
 
-> 脚本通过 `GITHUB_REPOSITORY_OWNER`（GitHub Actions 自动注入）确定扫描账号。
-> 需要覆盖时设置 `OWNER` 环境变量即可。
+> 脚本通过 `GITHUB_REPOSITORY_OWNER`（GitHub Actions 自动注入，值为运行仓库的拥有者）
+> 确定扫描账号。需要覆盖时设置 `OWNER` 环境变量。脚本中没有任何账号名是写死的。
 
 ## 工作原理
 

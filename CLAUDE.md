@@ -37,7 +37,7 @@ Timestamps render in `TIMEZONE` (IANA, default `Asia/Shanghai`) via `now_in_tz`,
 
 ## Auto-commit loop
 
-`.github/workflows/update-nav.yml` runs daily (UTC 00:00) and on manual dispatch, regenerates `index.html`, and commits/pushes only if it changed. Therefore:
+`.github/workflows/update-nav.yml` runs daily (UTC 00:00), on every push to `main`, and on manual dispatch, regenerates `index.html`, and commits/pushes only if it changed. Therefore:
 
 - **Do not commit `index.html` yourself** unless a code change alters its rendered output — the workflow owns it.
 - The workflow commits as `github-actions[bot]`; when pulling, expect a `chore: 自动更新 Pages 导航` commit on the remote.
