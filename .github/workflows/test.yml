@@ -19,5 +19,10 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Lint
+        run: |
+          pip install ruff
+          ruff check .
+
       - name: Run tests
         run: python -m unittest test_generate_nav -v

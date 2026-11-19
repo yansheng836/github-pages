@@ -4,9 +4,9 @@ import html as html_mod
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta, timezone
 
 try:
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
