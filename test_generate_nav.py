@@ -37,6 +37,24 @@ class TestNowInTz(unittest.TestCase):
         self.assertEqual(dt.utcoffset(), timedelta(hours=8))
 
 
+class TestFallbackOffset(unittest.TestCase):
+    def test_known_zone_uses_real_offset(self):
+        self.assertEqual(gn.fixed_offset("America/New_York"), timedelta(hours=-5))
+
+    def test_unknown_zone_falls_back_to_utc(self):
+        self.assertEqual(gn.fixed_offset("Not/AZone"), timedelta(0))
+
+    def test_missing_tzdata_does_not_silently_use_utc(self):
+        # 模拟 tzdata 缺失：ZoneInfo 抛异常时仍应得到正确的 +8，而不是 0
+        with mock.patch.object(gn, "ZoneInfo", side_effect=gn.ZoneInfoNotFoundError("no tzdata")):
+            dt = gn.now_in_tz("Asia/Shanghai")
+        self.assertEqual(dt.utcoffset(), timedelta(hours=8))
+
+    def test_now_in_tz_explicit_offset_zone(self):
+        dt = gn.now_in_tz("Etc/GMT-9")
+        self.assertEqual(dt.utcoffset(), timedelta(hours=9))
+
+
 class TestSorting(unittest.TestCase):
     def test_entries_sorted_by_updated_desc(self):
         entries = [

@@ -9,9 +9,12 @@ import urllib.error
 import urllib.request
 
 try:
-    from zoneinfo import ZoneInfo
-except ImportError:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+except ImportError:  # pragma: no cover - Python < 3.9
     ZoneInfo = None
+
+    class ZoneInfoNotFoundError(KeyError):
+        pass
 
 API = "https://api.github.com"
 DEFAULT_TZ = "Asia/Shanghai"
@@ -54,14 +57,33 @@ def strings():
     return STRINGS["zh-CN"]
 
 
+def fixed_offset(tz_name):
+    """ZoneInfo 不可用时的兜底偏移。
+
+    只认识 Chinese Standard Time 这一种情况；其它无法识别的时区明确回退 UTC 并由调用方告警，
+    而不是靠字符串包含关系瞎猜（例如 "America/New_York" 曾因此被当成 UTC）。
+    """
+    if ZoneInfo:
+        try:
+            return datetime.now(ZoneInfo(tz_name)).utcoffset()
+        except (ZoneInfoNotFoundError, ValueError, OSError):
+            pass
+    if tz_name in ("Asia/Shanghai", "Asia/Chongqing", "Asia/Urumqi", "Asia/Harbin", "PRC", "Asia/Taipei"):
+        return timedelta(hours=8)
+    print(
+        f"警告: 时区 {tz_name!r} 无法解析（缺少 tzdata？），已回退 UTC",
+        file=sys.stderr,
+    )
+    return timedelta(0)
+
+
 def now_in_tz(tz_name):
     if ZoneInfo:
         try:
             return datetime.now(ZoneInfo(tz_name))
-        except Exception:
+        except (ZoneInfoNotFoundError, ValueError, OSError):
             pass
-    offset = 8 if "Shanghai" in tz_name or "Beijing" in tz_name or "+8" in tz_name else 0
-    return datetime.now(timezone(timedelta(hours=offset)))
+    return datetime.now(timezone(fixed_offset(tz_name)))
 
 
 class ApiError(Exception):
