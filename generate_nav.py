@@ -175,6 +175,11 @@ def collect_entries(owner, token):
     return entries, failed
 
 
+def sort_entries(entries):
+    """按 pushed_at 降序；没有日期的条目排在最后。"""
+    return sorted(entries, key=lambda e: e["updated"], reverse=True)
+
+
 def esc(s):
     return html_mod.escape(s or "", quote=True)
 
@@ -284,7 +289,7 @@ def main():
         print(f"错误: 无法列出仓库，未写入 index.html: {e}", file=sys.stderr)
         sys.exit(1)
 
-    entries.sort(key=lambda e: e["updated"], reverse=True)
+    entries = sort_entries(entries)
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(render(owner, entries, avatar_url))

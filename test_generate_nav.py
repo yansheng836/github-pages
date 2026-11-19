@@ -62,8 +62,15 @@ class TestSorting(unittest.TestCase):
             {"name": "new", "description": "", "repo_url": "", "pages_url": "", "updated": "2026-11-17"},
             {"name": "mid", "description": "", "repo_url": "", "pages_url": "", "updated": "2025-06-01"},
         ]
-        ordered = sorted(entries, key=lambda e: e["updated"], reverse=True)
+        ordered = gn.sort_entries(entries)
         self.assertEqual([e["name"] for e in ordered], ["new", "mid", "old"])
+
+    def test_entries_without_date_sort_last(self):
+        entries = [
+            {"name": "none", "description": "", "repo_url": "", "pages_url": "", "updated": ""},
+            {"name": "dated", "description": "", "repo_url": "", "pages_url": "", "updated": "2024-01-01"},
+        ]
+        self.assertEqual([e["name"] for e in gn.sort_entries(entries)], ["dated", "none"])
 
 
 def _fake_response(payload):
