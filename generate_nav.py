@@ -19,6 +19,7 @@ except ImportError:  # pragma: no cover - Python < 3.9
 API = "https://api.github.com"
 DEFAULT_TZ = "Asia/Shanghai"
 MAX_PAGES = 50  # 翻页上限（最多 5000 个仓库），防止 API 异常时无限翻页
+DESC_LIMIT = 120  # 卡片描述最大字符数
 
 # 控制台编码（如 Windows 的 GBK）无法表示部分符号时用 ASCII 兜底，避免打印日志本身导致崩溃。
 sys.stdout.reconfigure(errors="replace")
@@ -178,8 +179,16 @@ def esc(s):
     return html_mod.escape(s or "", quote=True)
 
 
+def clean_desc(s):
+    """把描述压成单行并截断到 DESC_LIMIT，避免撑坏卡片布局。"""
+    text = " ".join((s or "").split())
+    if len(text) > DESC_LIMIT:
+        text = text[: DESC_LIMIT - 1].rstrip() + "…"
+    return text
+
+
 def card_html(e, s):
-    desc = e["description"] or s["no_desc"]
+    desc = clean_desc(e["description"]) or s["no_desc"]
     return f"""    <div class="card">
       <a class="name" href="{esc(e['pages_url'])}" target="_blank" rel="noopener">{esc(e['name'])}</a>
       <div class="desc">{esc(desc)}</div>
@@ -224,7 +233,7 @@ main {{ max-width:1100px; margin:0 auto; padding:1rem; }}
 .card {{ background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1rem; display:flex; flex-direction:column; transition:transform .15s, border-color .15s; }}
 .card:hover {{ transform:translateY(-2px); border-color:var(--accent); }}
 .name {{ font-weight:600; color:var(--accent); text-decoration:none; font-size:1.05rem; word-break:break-all; }}
-.desc {{ color:var(--muted); font-size:.875rem; margin:.5rem 0; flex:1; line-height:1.5; }}
+.desc {{ color:var(--muted); font-size:.875rem; margin:.5rem 0; flex:1; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }}
 .pages {{ font-size:.8rem; color:var(--text); word-break:break-all; }}
 .pages a {{ color:var(--accent); text-decoration:none; }}
 .updated {{ color:var(--muted); font-size:.75rem; margin-top:.5rem; }}

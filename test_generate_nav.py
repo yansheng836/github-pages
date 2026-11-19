@@ -160,6 +160,17 @@ class TestRender(unittest.TestCase):
         self.assertIn("myrepo", html)
         self.assertIn("a demo", html)
 
+    def test_long_description_is_truncated(self):
+        entries = [{"name": "r", "description": "x" * 500, "repo_url": "", "pages_url": "", "updated": ""}]
+        html = gn.render("someone", entries)
+        self.assertNotIn("x" * (gn.DESC_LIMIT + 1), html)
+        self.assertIn("…", html)
+
+    def test_multiline_description_is_flattened(self):
+        entries = [{"name": "r", "description": "line1\nline2\r\nline3", "repo_url": "", "pages_url": "", "updated": ""}]
+        html = gn.render("someone", entries)
+        self.assertIn("line1 line2 line3", html)
+
     def test_english_lang_switches_strings(self):
         os.environ["LANG"] = "en_US.UTF-8"
         html = gn.render("someone", [])
