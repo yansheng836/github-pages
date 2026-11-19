@@ -24,12 +24,12 @@ GITHUB_TOKEN=$(gh auth token) OWNER=yansheng836 python generate_nav.py
 
 ## Architecture
 
-`generate_nav.py` is the entire product — one file, Python 3.12 stdlib only (no third-party deps ever; `requirements.txt` is intentionally empty). The flow:
+`generate_nav.py` is the entire product — one file, Python 3.9+ stdlib only (no third-party deps ever; `requirements.txt` is intentionally empty). The flow:
 
 1. Resolve owner from `OWNER` → `GITHUB_REPOSITORY_OWNER` → `GITHUB_REPOSITORY` env (in that order).
-2. `list_public_repos` paginates `/users/{owner}/repos`.
-3. For each repo, query `/repos/{full}/pages`; keep those returning 200.
-4. Sort entries by `pushed_at` (desc) and render via `render()`.
+2. `list_public_repos` paginates `/users/{owner}/repos` (capped at `MAX_PAGES`).
+3. `collect_entries` queries `/repos/{full}/pages`; 200 = keep, 404 = no Pages, any other error = skip and report (exit 1) so a failing API never silently empties the page. `list_public_repos` failing on page 1 aborts without writing `index.html`.
+4. Sort entries by `pushed_at` (desc) via `sort_entries` and render via `render()`.
 
 The render layer is fully parameterised by the `STRINGS` dict + `strings()` helper, which picks zh-CN or English based on the `LANG` env var. Adding a language = add a dict entry; do not hardcode user-facing strings in `render`/`card_html`.
 

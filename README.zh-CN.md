@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml/badge.svg)](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![GitHub stars](https://img.shields.io/github/stars/yansheng836/github-pages?style=social)](https://github.com/yansheng836/github-pages/stargazers)
 
 ![GitHub Pages 导航](docs/screenshot.png)
@@ -19,7 +19,7 @@ GitHub Pages 的，渲染成深色响应式卡片网格导航页。GitHub Action
 
 ## 特性
 
-- **零依赖** —— 仅用 Python 3.12 标准库。
+- **零依赖** —— 仅用 Python 3.9+ 标准库。
 - **全自动** —— 每日 GitHub Action 扫描、重建并发布。
 - **单文件输出** —— 一个自包含的 `index.html`，由 GitHub Pages 托管。
 - **头像即 favicon** —— 自动把账号头像注入为站点图标。

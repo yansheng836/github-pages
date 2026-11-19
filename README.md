@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml/badge.svg)](https://github.com/yansheng836/github-pages/actions/workflows/update-nav.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![GitHub stars](https://img.shields.io/github/stars/yansheng836/github-pages?style=social)](https://github.com/yansheng836/github-pages/stargazers)
 
 ![GitHub Pages navigation](docs/screenshot.png)
@@ -20,7 +20,7 @@ and pushes the result to your Pages site — no server, no database, no dependen
 
 ## Features
 
-- **Zero dependencies** — pure Python 3.12 standard library.
+- **Zero dependencies** — pure Python 3.9+ standard library.
 - **Fully automatic** — a daily GitHub Action scans, rebuilds, and publishes.
 - **One file output** — a self-contained `index.html` hosted on GitHub Pages.
 - **Per-account avatar favicon** — your GitHub avatar is injected as the site favicon.
