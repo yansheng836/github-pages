@@ -50,7 +50,8 @@ is enough — no extra secrets required. Your page lives at
 
 1. `generate_nav.py` lists every public repo under the owner via the GitHub REST API.
 2. It queries `/repos/{owner}/{repo}/pages` for each, keeping only the ones with Pages enabled.
-3. It collects the repo name, description, repo link, Pages URL, and last push time.
+3. It collects the repo name, description, repo link, Pages URL, creation date, top 3
+   languages (by code size, via `/repos/{owner}/{repo}/languages`), and last push time.
 4. It renders a card-grid `index.html` sorted by most recent activity.
 
 The GitHub Action runs this daily, commits the new `index.html`, and pushes it; Pages

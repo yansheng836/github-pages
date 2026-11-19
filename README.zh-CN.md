@@ -45,7 +45,8 @@ GitHub Pages 的，渲染成深色响应式卡片网格导航页。GitHub Action
 
 1. `generate_nav.py` 通过 GitHub REST API 列出账号下的所有公开仓库。
 2. 逐个查询 `/repos/{owner}/{repo}/pages`，筛出启用了 Pages 的。
-3. 收集仓库名、描述、仓库链接、Pages 站点链接、最近推送时间。
+3. 收集仓库名、描述、仓库链接、Pages 站点链接、创建时间、前 3 个主要语言（按代码量，
+   来自 `/repos/{owner}/{repo}/languages`）和最近推送时间。
 4. 渲染成按最近活动排序的卡片网格 `index.html`。
 
 GitHub Action 每天运行一次，提交新的 `index.html` 并推送，Pages 随之更新。

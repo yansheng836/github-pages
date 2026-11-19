@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Card details: Page URL, creation date, and top 3 languages (by code size).
+- `--out <path>` to write the page somewhere other than the Action-owned `index.html`.
+- ruff lint check in CI; Python floor documented as 3.9+.
 - Bilingual README (English `README.md` + `README.zh-CN.md`).
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 - Issue templates (bug report, feature request) and pull request template.

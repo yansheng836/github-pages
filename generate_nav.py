@@ -3,6 +3,7 @@
 import html as html_mod
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -30,8 +31,14 @@ STRINGS = {
         "lang": "zh-CN",
         "no_desc": "（无描述）",
         "repo_label": "仓库：",
+        "page_label": "Page：",
+        "created_label": "创建：",
+        "langs_label": "语言：",
+        "no_lang": "无",
+        "lang_sep": " · ",
         "updated_label": "更新：",
         "updated_unknown": "未知",
+        "unknown": "未知",
         "empty": "暂未发现启用了 GitHub Pages 的公开仓库",
         "title": "{owner} 的 GitHub Pages 导航",
         "meta": "共 {n} 个站点 · 自动更新于 {t}",
@@ -41,8 +48,14 @@ STRINGS = {
         "lang": "en",
         "no_desc": "(no description)",
         "repo_label": "repo: ",
+        "page_label": "page: ",
+        "created_label": "created: ",
+        "langs_label": "languages: ",
+        "no_lang": "none",
+        "lang_sep": " · ",
         "updated_label": "updated: ",
         "updated_unknown": "unknown",
+        "unknown": "unknown",
         "empty": "No public repos with GitHub Pages enabled yet.",
         "title": "{owner}'s GitHub Pages navigation",
         "meta": "{n} sites · auto-updated {t}",
@@ -142,6 +155,17 @@ def list_public_repos(owner, token):
     return repos
 
 
+def top_languages(byte_counts, limit=3):
+    """取代码字节数占比最高的若干语言（/languages 接口已按字节数返回）。"""
+    if not byte_counts:
+        return []
+    ordered = sorted(
+        ((name, n) for name, n in byte_counts.items() if n),
+        key=lambda kv: (-kv[1], kv[0]),
+    )
+    return [name for name, _ in ordered[:limit]]
+
+
 def collect_entries(owner, token):
     """返回 (通过 Pages 检查的条目, 未完整获取/无法检查的仓库全名列表)。"""
     entries = []
@@ -162,12 +186,20 @@ def collect_entries(owner, token):
             print(f"  ! {full} (检查 Pages 失败，已跳过): {e}", file=sys.stderr)
             continue
         if code == 200 and data:
+            # 语言信息只是附加展示，拿不到（如空仓库 404）时留空占位，不影响整页生成。
+            try:
+                _, langs = api_get(f"/repos/{full}/languages", token)
+            except ApiError as e:
+                langs = None
+                print(f"  ! {full} (获取语言失败，显示占位): {e}", file=sys.stderr)
             entries.append({
                 "name": r["name"],
                 "description": r.get("description") or "",
                 "repo_url": r["html_url"],
                 "pages_url": data.get("html_url") or f"https://{owner}.github.io/{r['name']}/",
                 "updated": (r.get("pushed_at") or "")[:10],
+                "created": (r.get("created_at") or "")[:10],
+                "languages": top_languages(langs),
             })
             print(f"  ✓ {full}")
         else:
@@ -194,10 +226,16 @@ def clean_desc(s):
 
 def card_html(e, s):
     desc = clean_desc(e["description"]) or s["no_desc"]
+    pages_url = e["pages_url"]
+    short_url = re.sub(r"^https?://", "", pages_url)
+    langs = s["lang_sep"].join(e.get("languages") or []) or s["no_lang"]
     return f"""    <div class="card">
-      <a class="name" href="{esc(e['pages_url'])}" target="_blank" rel="noopener">{esc(e['name'])}</a>
+      <a class="name" href="{esc(pages_url)}" target="_blank" rel="noopener">{esc(e['name'])}</a>
       <div class="desc">{esc(desc)}</div>
       <div class="pages">{s['repo_label']}<a href="{esc(e['repo_url'])}" target="_blank" rel="noopener">{esc(e['repo_url'])}</a></div>
+      <div class="pages-url">{s['page_label']}<a href="{esc(pages_url)}" target="_blank" rel="noopener">{esc(short_url)}</a></div>
+      <div class="created">{s['created_label']}{esc(e.get('created')) or s['unknown']}</div>
+      <div class="langs">{s['langs_label']}{esc(langs)}</div>
       <div class="updated">{s['updated_label']}{esc(e['updated']) or s['updated_unknown']}</div>
     </div>"""
 
@@ -241,6 +279,10 @@ main {{ max-width:1100px; margin:0 auto; padding:1rem; }}
 .desc {{ color:var(--muted); font-size:.875rem; margin:.5rem 0; flex:1; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }}
 .pages {{ font-size:.8rem; color:var(--text); word-break:break-all; }}
 .pages a {{ color:var(--accent); text-decoration:none; }}
+.pages-url {{ font-size:.8rem; color:var(--text); word-break:break-all; }}
+.pages-url a {{ color:var(--accent); text-decoration:none; }}
+.created {{ color:var(--muted); font-size:.75rem; margin-top:.25rem; }}
+.langs {{ color:var(--text); font-size:.75rem; margin-top:.25rem; word-break:break-word; }}
 .updated {{ color:var(--muted); font-size:.75rem; margin-top:.5rem; }}
 .empty {{ color:var(--muted); text-align:center; padding:3rem; }}
 footer {{ max-width:1100px; margin:0 auto; padding:1rem; color:var(--muted); font-size:.8rem; }}

@@ -134,6 +134,56 @@ class TestApiErrors(unittest.TestCase):
         self.assertEqual([e["name"] for e in entries], ["ok"])
         self.assertEqual(failed, ["o/flaky"])
 
+    def test_card_fields_are_collected(self):
+        repos = [{
+            "name": "ok", "full_name": "o/ok", "html_url": "https://github.com/o/ok",
+            "pushed_at": "2026-01-02T00:00:00Z", "created_at": "2020-05-06T00:00:00Z",
+        }]
+        langs = {"Python": 8000, "HTML": 1000, "CSS": 500, "Shell": 100, "Dockerfile": 10}
+
+        def fake_get(path, token=None):
+            if path.startswith("/users/o/repos"):
+                return 200, repos
+            if path == "/repos/o/ok/pages":
+                return 200, {"html_url": "https://o.github.io/ok/"}
+            if path == "/repos/o/ok/languages":
+                return 200, langs
+            raise gn.ApiError(502, path)
+
+        with mock.patch.object(gn, "api_get", side_effect=fake_get):
+            entries, failed = gn.collect_entries("o", None)
+        self.assertEqual(failed, [])
+        self.assertEqual(entries[0]["created"], "2020-05-06")
+        self.assertEqual(entries[0]["languages"], ["Python", "HTML", "CSS"])
+
+    def test_languages_error_is_tolerated(self):
+        repos = [{"name": "ok", "full_name": "o/ok", "html_url": "u", "pushed_at": "2026-01-02"}]
+
+        def fake_get(path, token=None):
+            if path.startswith("/users/o/repos"):
+                return 200, repos
+            if path == "/repos/o/ok/pages":
+                return 200, {"html_url": "https://o.github.io/ok/"}
+            raise gn.ApiError(502, path)
+
+        with mock.patch.object(gn, "api_get", side_effect=fake_get):
+            entries, failed = gn.collect_entries("o", None)
+        self.assertEqual(entries[0]["languages"], [])
+        self.assertEqual(failed, [])
+
+
+class TestTopLanguages(unittest.TestCase):
+    def test_sorted_by_bytes_desc_and_capped(self):
+        langs = {"Python": 10, "HTML": 500, "CSS": 30, "Shell": 1, "Go": 99}
+        self.assertEqual(gn.top_languages(langs), ["HTML", "Go", "CSS"])
+
+    def test_empty_or_missing_data(self):
+        self.assertEqual(gn.top_languages({}), [])
+        self.assertEqual(gn.top_languages(None), [])
+
+    def test_zero_byte_languages_ignored(self):
+        self.assertEqual(gn.top_languages({"Python": 0, "HTML": 5}), ["HTML"])
+
 
 class TestRender(unittest.TestCase):
     def setUp(self):
@@ -174,6 +224,30 @@ class TestRender(unittest.TestCase):
         html = gn.render("someone", [])
         self.assertIn("No public repos with GitHub Pages enabled yet.", html)
         self.assertIn('lang="en"', html)
+
+    def test_card_shows_page_created_and_languages(self):
+        entries = [{
+            "name": "r", "description": "d", "repo_url": "https://github.com/o/r",
+            "pages_url": "https://o.github.io/r/", "updated": "2026-11-17",
+            "created": "2020-05-06", "languages": ["Python", "HTML", "CSS"],
+        }]
+        html = gn.render("someone", entries)
+        self.assertIn("Page：", html)
+        self.assertIn('href="https://o.github.io/r/"', html)
+        self.assertIn(">o.github.io/r/</a>", html)
+        self.assertIn("创建：2020-05-06", html)
+        self.assertIn("语言：Python · HTML · CSS", html)
+
+    def test_card_placeholders_for_missing_fields(self):
+        entries = [{"name": "r", "description": "d", "repo_url": "", "pages_url": "",
+                    "updated": "", "created": "", "languages": []}]
+        html = gn.render("someone", entries)
+        self.assertIn("创建：" + gn.STRINGS["zh-CN"]["unknown"], html)
+        self.assertIn("语言：" + gn.STRINGS["zh-CN"]["no_lang"], html)
+
+    def test_card_accepts_entry_without_new_keys(self):
+        entries = [{"name": "r", "description": "d", "repo_url": "", "pages_url": "https://x/", "updated": ""}]
+        self.assertIn("语言：", gn.render("someone", entries))
 
 
 class TestMainOutput(unittest.TestCase):
