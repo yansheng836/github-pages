@@ -16,6 +16,10 @@ except ImportError:
 API = "https://api.github.com"
 DEFAULT_TZ = "Asia/Shanghai"
 
+# 控制台编码（如 Windows 的 GBK）无法表示部分符号时用 ASCII 兜底，避免打印日志本身导致崩溃。
+sys.stdout.reconfigure(errors="replace")
+sys.stderr.reconfigure(errors="replace")
+
 STRINGS = {
     "zh-CN": {
         "lang": "zh-CN",
@@ -59,6 +63,16 @@ def now_in_tz(tz_name):
     return datetime.now(timezone(timedelta(hours=offset)))
 
 
+class ApiError(Exception):
+    """GitHub API request failed (HTTP error, network error or bad JSON)."""
+
+    def __init__(self, status, path, detail=""):
+        super().__init__(f"{status} {path} {detail}".strip())
+        self.status = status
+        self.path = path
+        self.detail = detail
+
+
 def api_get(path, token=None):
     req = urllib.request.Request(
         f"{API}{path}",
@@ -70,24 +84,68 @@ def api_get(path, token=None):
         with urllib.request.urlopen(req, timeout=30) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
-        return e.code, None
+        raise ApiError(e.code, path, e.reason) from e
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        raise ApiError("network", path, str(e)) from e
+    except ValueError as e:
+        raise ApiError("invalid-json", path, str(e)) from e
 
 
 def list_public_repos(owner, token):
     repos = []
     page = 1
     while True:
-        code, data = api_get(
-            f"/users/{owner}/repos?type=owner&sort=pushed&direction=desc&per_page=100&page={page}",
-            token,
-        )
+        try:
+            code, data = api_get(
+                f"/users/{owner}/repos?type=owner&sort=pushed&direction=desc&per_page=100&page={page}",
+                token,
+            )
+        except ApiError as e:
+            # 第一页失败绝不能让调用方误以为“没有仓库”；后续页失败则返回已拿到的部分。
+            if page == 1:
+                raise
+            print(f"警告: 获取第 {page} 页仓库失败，结果可能不完整: {e}", file=sys.stderr)
+            break
         if code != 200 or not data:
+            if page == 1:
+                raise ApiError(f"unexpected-status-{code}", f"/users/{owner}/repos", "empty or non-200 response")
+            print(f"警告: 第 {page} 页响应异常，结果可能不完整", file=sys.stderr)
             break
         repos.extend(data)
         if len(data) < 100:
             break
         page += 1
     return repos
+
+
+def collect_entries(owner, token):
+    """返回 (通过 Pages 检查的条目, 检查失败而跳过的仓库全名列表)。"""
+    entries = []
+    failed = []
+    for r in list_public_repos(owner, token):
+        full = r["full_name"]
+        try:
+            code, data = api_get(f"/repos/{full}/pages", token)
+        except ApiError as e:
+            # 404 = 没有 Pages；其它错误不代表没有 Pages，记为失败并跳过，避免悄悄从页面消失。
+            if e.status == 404:
+                print(f"  - {full} (无 Pages)")
+                continue
+            failed.append(full)
+            print(f"  ! {full} (检查 Pages 失败，已跳过): {e}", file=sys.stderr)
+            continue
+        if code == 200 and data:
+            entries.append({
+                "name": r["name"],
+                "description": r.get("description") or "",
+                "repo_url": r["html_url"],
+                "pages_url": data.get("html_url") or f"https://{owner}.github.io/{r['name']}/",
+                "updated": (r.get("pushed_at") or "")[:10],
+            })
+            print(f"  ✓ {full}")
+        else:
+            print(f"  - {full} (无 Pages)")
+    return entries, failed
 
 
 def esc(s):
@@ -174,36 +232,31 @@ def main():
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_PAT")
 
     avatar_url = None
-    code, data = api_get(f"/users/{owner}", token)
+    try:
+        code, data = api_get(f"/users/{owner}", token)
+    except ApiError as e:
+        print(f"警告: 获取头像失败，忽略: {e}", file=sys.stderr)
+        code, data = 0, None
     if code == 200 and data:
         avatar_url = data.get("avatar_url")
         print(f"头像: {avatar_url}")
 
     print(f"扫描 {owner} 的公开仓库...")
-    repos = list_public_repos(owner, token)
-    print(f"共 {len(repos)} 个公开仓库，检查 Pages...")
-
-    entries = []
-    for r in repos:
-        full = r["full_name"]
-        code, data = api_get(f"/repos/{full}/pages", token)
-        if code == 200 and data:
-            entries.append({
-                "name": r["name"],
-                "description": r.get("description") or "",
-                "repo_url": r["html_url"],
-                "pages_url": data.get("html_url") or f"https://{owner}.github.io/{r['name']}/",
-                "updated": (r.get("pushed_at") or "")[:10],
-            })
-            print(f"  ✓ {full}")
-        else:
-            print(f"  - {full} (无 Pages)")
+    try:
+        entries, failed = collect_entries(owner, token)
+    except ApiError as e:
+        # 拿不到仓库列表时绝不能覆盖已有的 index.html，否则会把导航页清空。
+        print(f"错误: 无法列出仓库，未写入 index.html: {e}", file=sys.stderr)
+        sys.exit(1)
 
     entries.sort(key=lambda e: e["updated"], reverse=True)
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(render(owner, entries, avatar_url))
     print(f"生成 {len(entries)} 个条目 -> {out}")
+    if failed:
+        print(f"警告: {len(failed)} 个仓库因 Pages 检查失败未包含: {', '.join(failed)}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

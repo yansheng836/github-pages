@@ -3,8 +3,12 @@
 
 Run with:  python -m unittest test_generate_nav
 """
+import io
+import json
 import os
 import unittest
+import urllib.error
+from unittest import mock
 from datetime import datetime, timezone, timedelta
 
 import generate_nav as gn
@@ -42,6 +46,57 @@ class TestSorting(unittest.TestCase):
         ]
         ordered = sorted(entries, key=lambda e: e["updated"], reverse=True)
         self.assertEqual([e["name"] for e in ordered], ["new", "mid", "old"])
+
+
+def _fake_response(payload):
+    body = json.dumps(payload).encode("utf-8")
+    resp = mock.MagicMock()
+    resp.status = 200
+    resp.read.return_value = body
+    resp.__enter__.return_value = resp
+    return resp
+
+
+class TestApiErrors(unittest.TestCase):
+    def test_http_error_raises_api_error(self):
+        err = urllib.error.HTTPError(
+            "https://api.github.com/x", 429, "rate limited", {}, io.BytesIO(b"{}")
+        )
+        with mock.patch.object(gn.urllib.request, "urlopen", side_effect=err):
+            with self.assertRaises(gn.ApiError) as ctx:
+                gn.api_get("/x")
+        self.assertEqual(ctx.exception.status, 429)
+
+    def test_list_public_repos_propagates_first_page_failure(self):
+        err = urllib.error.HTTPError(
+            "https://api.github.com/users/o/repos", 500, "boom", {}, io.BytesIO(b"{}")
+        )
+        with mock.patch.object(gn.urllib.request, "urlopen", side_effect=err):
+            with self.assertRaises(gn.ApiError):
+                gn.list_public_repos("o", None)
+
+    def test_pages_check_errors_are_skipped_not_dropped(self):
+        repos = [
+            {"name": "ok", "full_name": "o/ok", "html_url": "u", "pushed_at": "2026-01-01"},
+            {"name": "flaky", "full_name": "o/flaky", "html_url": "u", "pushed_at": "2026-01-02"},
+        ]
+        responses = {
+            "/users/o": (200, {"avatar_url": "a"}),
+            "/users/o/repos": (200, repos),
+            "/repos/o/ok/pages": (200, {"html_url": "https://o.github.io/ok/"}),
+        }
+
+        def fake_get(path, token=None):
+            if path.startswith("/users/o/repos"):
+                return responses["/users/o/repos"]
+            if path in responses:
+                return responses[path]
+            raise gn.ApiError(502, path)
+
+        with mock.patch.object(gn, "api_get", side_effect=fake_get):
+            entries, failed = gn.collect_entries("o", None)
+        self.assertEqual([e["name"] for e in entries], ["ok"])
+        self.assertEqual(failed, ["o/flaky"])
 
 
 class TestRender(unittest.TestCase):
