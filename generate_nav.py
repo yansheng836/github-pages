@@ -15,6 +15,7 @@ except ImportError:
 
 API = "https://api.github.com"
 DEFAULT_TZ = "Asia/Shanghai"
+MAX_PAGES = 50  # 翻页上限（最多 5000 个仓库），防止 API 异常时无限翻页
 
 # 控制台编码（如 Windows 的 GBK）无法表示部分符号时用 ASCII 兜底，避免打印日志本身导致崩溃。
 sys.stdout.reconfigure(errors="replace")
@@ -94,7 +95,7 @@ def api_get(path, token=None):
 def list_public_repos(owner, token):
     repos = []
     page = 1
-    while True:
+    while page <= MAX_PAGES:
         try:
             code, data = api_get(
                 f"/users/{owner}/repos?type=owner&sort=pushed&direction=desc&per_page=100&page={page}",
@@ -119,10 +120,13 @@ def list_public_repos(owner, token):
 
 
 def collect_entries(owner, token):
-    """返回 (通过 Pages 检查的条目, 检查失败而跳过的仓库全名列表)。"""
+    """返回 (通过 Pages 检查的条目, 未完整获取/无法检查的仓库全名列表)。"""
     entries = []
     failed = []
-    for r in list_public_repos(owner, token):
+    repos = list_public_repos(owner, token)
+    if len(repos) >= MAX_PAGES * 100:
+        failed.append(f"<超过 {MAX_PAGES} 页上限，后续仓库未扫描>")
+    for r in repos:
         full = r["full_name"]
         try:
             code, data = api_get(f"/repos/{full}/pages", token)

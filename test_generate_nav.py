@@ -75,6 +75,26 @@ class TestApiErrors(unittest.TestCase):
             with self.assertRaises(gn.ApiError):
                 gn.list_public_repos("o", None)
 
+    def test_pagination_stops_at_max_pages(self):
+        full_page = [{"name": f"r{i}"} for i in range(100)]
+        with mock.patch.object(gn, "MAX_PAGES", 3), \
+                mock.patch.object(gn, "api_get", return_value=(200, full_page)) as get:
+            repos = gn.list_public_repos("o", None)
+        self.assertEqual(get.call_count, 3)
+        self.assertEqual(len(repos), 300)
+
+    def test_collect_entries_reports_truncated_pagination(self):
+        page = [{"name": f"r{i}", "full_name": f"o/r{i}"} for i in range(100)]
+        with mock.patch.object(gn, "MAX_PAGES", 2), \
+                mock.patch.object(gn, "api_get", return_value=(200, page)):
+            repos = gn.list_public_repos("o", None)
+        self.assertEqual(len(repos), 200)
+        with mock.patch.object(gn, "MAX_PAGES", 2), \
+                mock.patch.object(gn, "list_public_repos", return_value=repos), \
+                mock.patch.object(gn, "api_get", return_value=(404, None)):
+            _, failed = gn.collect_entries("o", None)
+        self.assertTrue(any("上限" in f for f in failed))
+
     def test_pages_check_errors_are_skipped_not_dropped(self):
         repos = [
             {"name": "ok", "full_name": "o/ok", "html_url": "u", "pushed_at": "2026-01-01"},
