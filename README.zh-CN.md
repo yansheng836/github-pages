@@ -58,9 +58,12 @@ export GITHUB_TOKEN=$(gh auth token)
 
 # 为任意账号生成 index.html
 OWNER=yansheng836 python generate_nav.py
+
+# 本地预览时不覆盖仓库里受版本控制的 index.html
+OWNER=yansheng836 python generate_nav.py --out index.local.html
 ```
 
-生成的文件会写在脚本同目录下的 `index.html`。
+默认生成到脚本同目录下的 `index.html`；指定 `--out <路径>` 时写到该路径。
 
 ### 环境变量
 

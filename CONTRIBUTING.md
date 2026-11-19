@@ -16,10 +16,11 @@ process is intentionally lightweight.
 git clone https://github.com/yansheng836/github-pages.git
 cd github-pages
 export GITHUB_TOKEN=$(gh auth token)   # optional, raises rate limit
-OWNER=yansheng836 python generate_nav.py
+OWNER=yansheng836 python generate_nav.py --out index.local.html
 ```
 
-Open `index.html` in a browser to inspect your changes.
+Open `index.local.html` in a browser to inspect your changes. Using `--out` keeps you from
+accidentally overwriting the committed `index.html`, which the Action owns.
 
 ## Before opening a pull request
 

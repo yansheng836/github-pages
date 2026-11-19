@@ -5,6 +5,7 @@ Run with:  python -m unittest test_generate_nav
 """
 import io
 import os
+import tempfile
 import unittest
 import urllib.error
 from datetime import timedelta
@@ -173,6 +174,30 @@ class TestRender(unittest.TestCase):
         html = gn.render("someone", [])
         self.assertIn("No public repos with GitHub Pages enabled yet.", html)
         self.assertIn('lang="en"', html)
+
+
+class TestMainOutput(unittest.TestCase):
+    def _run(self, argv, out):
+        env = {"OWNER": "someone"}
+        with mock.patch.dict(os.environ, env, clear=True), \
+                mock.patch.object(gn, "api_get", return_value=(200, {"avatar_url": "a"})), \
+                mock.patch.object(gn, "collect_entries", return_value=([], [])):
+            gn.main(argv)
+        return out
+
+    def test_out_flag_writes_to_given_path(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "nav.html")
+            self._run(["--out", path], path)
+            self.assertTrue(os.path.exists(path))
+            with open(path, encoding="utf-8") as f:
+                self.assertIn('lang="zh-CN"', f.read())
+
+    def test_unknown_argument_exits_with_usage(self):
+        with mock.patch.dict(os.environ, {"OWNER": "someone"}, clear=True), \
+                self.assertRaises(SystemExit) as ctx:
+            gn.main(["--bogus"])
+        self.assertEqual(ctx.exception.code, 2)
 
 
 if __name__ == "__main__":

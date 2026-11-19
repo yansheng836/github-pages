@@ -260,7 +260,8 @@ footer {{ max-width:1100px; margin:0 auto; padding:1rem; color:var(--muted); fon
 """
 
 
-def main():
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
     owner = os.environ.get("OWNER") or os.environ.get("GITHUB_REPOSITORY_OWNER")
     if not owner:
         repo_env = os.environ.get("GITHUB_REPOSITORY", "")
@@ -268,6 +269,15 @@ def main():
     if not owner:
         print("无法确定 owner（设置 OWNER 或 GITHUB_REPOSITORY 环境变量）", file=sys.stderr)
         sys.exit(1)
+
+    # 显式给出 --out 时用它；否则写脚本目录下的 index.html（CI 依赖此行为）。
+    # 本地调试时建议 --out index.local.html，避免覆盖受版本控制的 index.html。
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    if len(argv) == 2 and argv[0] == "--out":
+        out = os.path.abspath(argv[1])
+    elif argv:
+        print("用法: python generate_nav.py [--out <路径>]", file=sys.stderr)
+        sys.exit(2)
 
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_PAT")
 
@@ -290,7 +300,13 @@ def main():
         sys.exit(1)
 
     entries = sort_entries(entries)
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    if os.path.exists(out):
+        try:
+            with open(out, "a", encoding="utf-8"):
+                pass
+        except OSError as e:
+            print(f"错误: 无法写入 {out}（文件是否被占用？）: {e}", file=sys.stderr)
+            sys.exit(1)
     with open(out, "w", encoding="utf-8") as f:
         f.write(render(owner, entries, avatar_url))
     print(f"生成 {len(entries)} 个条目 -> {out}")

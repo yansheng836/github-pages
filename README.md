@@ -64,9 +64,12 @@ export GITHUB_TOKEN=$(gh auth token)
 
 # Generate index.html for any account
 OWNER=yansheng836 python generate_nav.py
+
+# Local preview without touching the committed index.html
+OWNER=yansheng836 python generate_nav.py --out index.local.html
 ```
 
-The generated file is written next to the script as `index.html`.
+The generated file is written next to the script as `index.html` unless `--out <path>` is given.
 
 ### Environment variables
 

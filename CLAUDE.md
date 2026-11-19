@@ -15,8 +15,8 @@ python -m unittest test_generate_nav -v
 # Run a single test
 python -m unittest test_generate_nav.TestEsc.test_none_becomes_empty -v
 
-# Generate the nav page locally (writes index.html next to the script)
-OWNER=yansheng836 python generate_nav.py
+# Generate the nav page locally; use --out to avoid overwriting the Action-owned index.html
+OWNER=yansheng836 python generate_nav.py --out index.local.html
 
 # With a token to raise the API rate limit
 GITHUB_TOKEN=$(gh auth token) OWNER=yansheng836 python generate_nav.py
