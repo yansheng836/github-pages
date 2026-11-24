@@ -227,12 +227,14 @@ def clean_desc(s):
 def card_html(e, s):
     desc = clean_desc(e["description"]) or s["no_desc"]
     pages_url = e["pages_url"]
+    # 展示用短链接：协议前缀去掉，点击仍走完整 URL
     short_url = re.sub(r"^https?://", "", pages_url)
+    short_repo = re.sub(r"^https?://", "", e["repo_url"])
     langs = s["lang_sep"].join(e.get("languages") or []) or s["no_lang"]
     return f"""    <div class="card">
       <a class="name" href="{esc(pages_url)}" target="_blank" rel="noopener">{esc(e['name'])}</a>
       <div class="desc">{esc(desc)}</div>
-      <div class="pages">{s['repo_label']}<a href="{esc(e['repo_url'])}" target="_blank" rel="noopener">{esc(e['repo_url'])}</a></div>
+      <div class="pages">{s['repo_label']}<a href="{esc(e['repo_url'])}" target="_blank" rel="noopener">{esc(short_repo)}</a></div>
       <div class="pages-url">{s['page_label']}<a href="{esc(pages_url)}" target="_blank" rel="noopener">{esc(short_url)}</a></div>
       <div class="langs">{s['langs_label']}{esc(langs)}</div>
       <div class="created">{s['created_label']}{esc(e.get('created')) or s['unknown']}</div>

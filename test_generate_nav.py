@@ -255,6 +255,15 @@ class TestRender(unittest.TestCase):
         positions = [html.index(lbl) for lbl in labels]
         self.assertEqual(positions, sorted(positions))
 
+    def test_card_urls_shown_without_protocol(self):
+        entries = [{"name": "r", "description": "d", "repo_url": "https://github.com/o/r",
+                    "pages_url": "https://o.github.io/r/", "updated": "2026-11-17",
+                    "created": "2020-05-06", "languages": ["Python"]}]
+        html = gn.render("someone", entries)
+        self.assertIn(">github.com/o/r</a>", html)
+        self.assertIn(">o.github.io/r/</a>", html)
+        self.assertNotIn(">https://", html)
+
     def test_card_accepts_entry_without_new_keys(self):
         entries = [{"name": "r", "description": "d", "repo_url": "", "pages_url": "https://x/", "updated": ""}]
         self.assertIn("语言：", gn.render("someone", entries))
