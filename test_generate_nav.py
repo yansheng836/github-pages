@@ -245,6 +245,16 @@ class TestRender(unittest.TestCase):
         self.assertIn("创建：" + gn.STRINGS["zh-CN"]["unknown"], html)
         self.assertIn("语言：" + gn.STRINGS["zh-CN"]["no_lang"], html)
 
+    def test_card_field_order(self):
+        s = gn.STRINGS["zh-CN"]
+        entries = [{"name": "r", "description": "d", "repo_url": "https://github.com/o/r",
+                    "pages_url": "https://o.github.io/r/", "updated": "2026-11-17",
+                    "created": "2020-05-06", "languages": ["Python"]}]
+        html = gn.render("someone", entries)
+        labels = [s["repo_label"], s["page_label"], s["langs_label"], s["created_label"], s["updated_label"]]
+        positions = [html.index(lbl) for lbl in labels]
+        self.assertEqual(positions, sorted(positions))
+
     def test_card_accepts_entry_without_new_keys(self):
         entries = [{"name": "r", "description": "d", "repo_url": "", "pages_url": "https://x/", "updated": ""}]
         self.assertIn("语言：", gn.render("someone", entries))
